@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="EN">
+
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Match Game</title>
+</head>
+
+
+<body>
+	<div class="gradient-text">
+		<h1 class="fancy-heading">Welcome to the Match Game</h1>
+
+		<p id="p1" style="display: none;"> </p>
+		
+		<div class="center-container">
+			<div class="button-container">
+				<button class="button" id="connectButton" style="display: none;">Connect</button>
+				<button class="button" id="playGameButton" onclick="window.location.href = './game.html';" style="display: none;">Play Game</button>
+				<button class="button" id="myAccountButton" onclick="window.location.href = './myaccount.html';" style="display: none;">My Account</button>
+				<button class="button" id="tradeButton" onclick="window.location.href = './trading.html';" style="display: none;"> Trading </button>
+			</div>
+		</div>
+	</div>
+
+
+
+	<!-- Import the JavaScript module -->
+	<script type="module" src="functions.js"></script>
+
+	<!-- Call the imported function -->
+	<script type="module">
+		import { checkConnection,  connectMetamask} from './functions.js';
+
+		window.addEventListener("DOMContentLoaded", async () => {
+		try {
+			let r = await checkConnection();
+			if (r === "connected") {
+				document.getElementById("myAccountButton").style.display = "block";
+                document.getElementById("playGameButton").style.display = "block";
+				document.getElementById("tradeButton").style.display = "block";
+			} else {
+				var paragraph = document.getElementById("p1");
+				paragraph.style.display = "block";
+					
+				if (r == "account") {
+					paragraph.textContent = "No connected MetaMask account found. Please click the button to connect.";
+					document.getElementById("connectButton").style.display = "block";
+				} else {
+					paragraph.textContent = "Metamask not detected. Install or enable Metamask extension and connect.";
+				}
+			}
+		} catch (error) {
+			console.error("Error:", error);
+		}
+
+		// Get the button element by ID
+		var button = document.getElementById("connectButton");
+		button.addEventListener("click", async () => {
+			let r = await connectMetamask();
+			if (r == "connected"){
+				document.getElementById("connectButton").style.display = "none";
+				document.getElementById("myAccountButton").style.display = "block";
+				document.getElementById("playGameButton").style.display = "block";
+				document.getElementById("tradeButton").style.display = "block";
+			}
+		});
+
+	});
+
+    </script>	
+</body>
+
+</html>

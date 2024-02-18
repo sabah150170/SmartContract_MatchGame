@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="EN">
+
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Match Game</title>
+</head>
+
+
+<body>
+	<div class="gradient-text">
+
+		<p id="p1" class="gradient-text" style="display: none; position: fixed; top: 80px; left: 330px; font-size: 40px; font-weight: 540;"> 
+			Your NFTs 
+		</p>
+		<p id="p2" class="gradient-text" style="display: none; position: fixed; top: 420px; left: 330px;"> Available NFTs for purchase to add to your collection </p>
+		<p id="p3" class="gradient-text" style="display: none; position: fixed; top: 665px; left: 330px;"> NFTs you can win from the game </p>
+
+		<div class="center-container">
+			<div class="button-container">
+				<button class="button" id="connectButton" style="display: none;">Connect</button>
+			</div>
+		</div>
+			
+	</div>
+
+
+	<div class="gradient-text" id="imageGrid" style="display: none;">
+		<div class="grid-container-account" style="position: fixed; top: 180px; width: 70%;">
+			<div class="grid-item" style="display: none;" id="my-0"><img></div>
+			<div class="grid-item" style="display: none;" id="my-1"><img></div>
+			<div class="grid-item" style="display: none;" id="my-2"><img></div>
+			<div class="grid-item" style="display: none;" id="my-3"><img></div>
+			<div class="grid-item" style="display: none;" id="my-4"><img></div>
+			<div class="grid-item" style="display: none;" id="my-5"><img ></div>
+			<div class="grid-item" style="display: none;" id="my-6"><img></div>
+			<div class="grid-item" style="display: none;" id="my-7"><img></div>
+		</div>
+		<div class="grid-container-account" style="position: fixed; top: 505px; width: 50%;">
+			<div class="grid-item-nft" style="display: none;" id="mint-0"><img></div>
+			<div class="grid-item-nft" style="display: none;" id="mint-1"><img></div>
+			<div class="grid-item-nft" style="display: none;" id="mint-2"><img></div>
+			<div class="grid-item-nft" style="display: none;" id="mint-3"><img></div>
+			<div class="grid-item-nft" style="display: none;" id="mint-4"><img></div>
+			<div class="grid-item-nft" style="display: none;" id="mint-5"><img></div>
+			<div class="grid-item-nft" style="display: none;" id="mint-6"><img></div>
+			<div class="grid-item-nft" style="display: none;" id="mint-7"><img></div>
+		</div>
+		<div class="grid-container-account" style="position: fixed; top: 750px; width: 50%;">
+			<div class="grid-item-nft" style="display: none;" id="game-0"><img></div>
+			<div class="grid-item-nft" style="display: none;" id="game-1"><img></div>
+			<div class="grid-item-nft" style="display: none;" id="game-2"><img></div>
+			<div class="grid-item-nft" style="display: none;" id="game-3"><img></div>
+			<div class="grid-item-nft" style="display: none;" id="game-4"><img></div>
+			<div class="grid-item-nft" style="display: none;" id="game-5"><img></div>
+			<div class="grid-item-nft" style="display: none;" id="game-6"><img></div>
+			<div class="grid-item-nft" style="display: none;" id="game-7"><img></div>
+		</div>	
+	</div>
+
+
+	
+	<!-- Import the JavaScript module -->
+	<script type="module" src="functions.js"></script>
+
+	<!-- Call the imported function -->
+	<script type="module">
+		import { checkConnection, connectMetamask, getRemaining, getAllNFTs, getMyNFTs, contract, signerAddress, TOTAL_NFT } from './functions.js';
+
+		let lastEmptyMyNFTIdx, lastEmptyMintedNFTIdx, lastEmptyGameNFTIdx;
+
+		// run in the begining
+		window.addEventListener("DOMContentLoaded", async () => {
+			try {
+				let r = await checkConnection();
+				if (r === "connected") {
+					await postConnect();
+				} else {
+					window.location.href = "/index.html";
+				}
+			} catch (error) {
+				console.error("Error:", error);
+			}
+		});
+
+		function startEventListener() {			
+			// Attach contract event listeners
+			contract.on("NewMinting", (minter, tokenUri) => {
+				let result;
+
+				// add to the my or minted grid
+				if (minter == signerAddress ) {
+					result = addToGrid([tokenUri], lastEmptyMyNFTIdx, "my");
+
+				} else {
+					console.log(lastEmptyMintedNFTIdx)
+					result = addToGrid([tokenUri], lastEmptyMintedNFTIdx, "mint");
+					
+				}
+
+				// remove from the not-minted grid
+				if (result != "duplicate") {
+					removeFromGrid([tokenUri], lastEmptyMyNFTIdx, "game");
+				}
+			});
+			
+			contract.on("DemandAccepted", async (buyer, seller, acceptedNFTs) => {
+				console.log("demand event")
+				//acceptedNFTs list holds tokenId not tokenUri, get tokenUri of them
+				let nft = await getAllNFTs();
+				let listNFTs = [];
+				for (let i = 0; i < acceptedNFTs.length; i++){
+					listNFTs.push(nft[acceptedNFTs[i]].tokenUri);
+				}
+
+				// remove from grid or add to grid if seller or buyer is signer
+				if (buyer == signerAddress) {
+					let r = addToGrid(listNFTs, lastEmptyMyNFTIdx, "my");
+					if (r != "duplicate") {	
+						removeFromGrid(listNFTs, lastEmptyMintedNFTIdx, "mint");
+					}
+
+				} else if (seller == signerAddress) {
+					let r = addToGrid(listNFTs, lastEmptyMintedNFTIdx, "mint");
+					if (r != "duplicate") {	
+						removeFromGrid(listNFTs, lastEmptyMyNFTIdx, "my");
+					}
+				}
+			});
+		}		
+
+
+		// helper functions
+		async function postConnect() {
+			document.getElementById("imageGrid").style.display = "block";
+			document.getElementById("p1").style.display = "block";
+			document.getElementById("p2").style.display = "block";
+			document.getElementById("p3").style.display = "block";
+
+			// arrange grids
+			let containOf = [];
+			let nft = await getMyNFTs();
+			lastEmptyMyNFTIdx = 0;
+			for (let i = 0; i < nft.length; i++) {
+				const gridItem = document.getElementById(`my-${lastEmptyMyNFTIdx}`);
+				const image = gridItem.querySelector("img");
+				image.src = `images/nft_${[nft[i].tokenUri]}.png`;
+				gridItem.style.display = "block"; 
+
+				containOf.push(parseInt(nft[i].tokenUri));
+				lastEmptyMyNFTIdx++;				
+			}
+
+			nft = await getAllNFTs();
+			lastEmptyMintedNFTIdx = 0;
+			for (let i = 0; i < nft.length; i++) {
+				if (nft[i].minter == 0) {
+					break;
+				} else {
+					if (!containOf.includes(parseInt(nft[i].tokenUri))) {
+						const gridItem = document.getElementById(`mint-${lastEmptyMintedNFTIdx}`);
+						const image = gridItem.querySelector("img");
+						image.src = `images/nft_${[nft[i].tokenUri]}.png`;
+						gridItem.style.display = "block"; 
+
+						containOf.push(parseInt(nft[i].tokenUri));
+						lastEmptyMintedNFTIdx++;
+					}
+				}
+			}
+
+			lastEmptyGameNFTIdx = 0;
+			for (let i = 0; i < TOTAL_NFT; i++) {
+				if (!containOf.includes(i)) {
+					const gridItem = document.getElementById(`game-${lastEmptyGameNFTIdx}`);
+					const image = gridItem.querySelector("img");
+					image.src = `images/nft_${i}.png`;
+					gridItem.style.display = "block"; 
+
+					lastEmptyGameNFTIdx++;
+				}
+			}
+			
+			startEventListener();
+		}
+
+		function addToGrid(listNFTs, lastEmptyIdx, grid) {
+			// check if one of the NFTs is already on the grid
+			if (lastEmptyIdx != 0) {
+				let tokenUri = listNFTs[0];
+
+				for (let i = 0; i < lastEmptyIdx; i++) {
+					const gridItem = document.getElementById(`${grid}-${i}`);
+					const image = gridItem.querySelector("img");
+					const imgSrc = image.getAttribute("src");
+
+					const str = imgSrc.match(/\/nft_(\d+)\.png/);
+					const _tokenUri = str[1];
+
+					if (tokenUri == _tokenUri) {
+						// this event is already managed
+						return "duplicate";
+					}
+				}
+			}
+
+			// event is new
+			for (let i = 0; i < listNFTs.length; i++) {
+				const gridItem = document.getElementById(`${grid}-${lastEmptyIdx}`);
+				const image = gridItem.querySelector("img");
+				image.src = `images/nft_${listNFTs[i]}.png`;
+				gridItem.style.display = "block";
+				lastEmptyIdx++;
+			}
+		}
+		
+		function removeFromGrid(listNFTs, lastEmptyIdx, grid) {
+
+			console.log(listNFTs);
+			console.log(lastEmptyIdx);
+
+			// remove NFTs
+			for(let i = 0; i < listNFTs.length; i++) {
+				for(let j = 0; j < lastEmptyIdx; j++) {
+
+					console.log("grid index:", j);
+
+					const gridItem = document.getElementById(`${grid}-${j}`);
+					const image = gridItem.querySelector("img");
+					const imgSrc = image.getAttribute("src");
+
+					// check this src may have been removed in the previous iterations
+					if (imgSrc) {
+						const str = imgSrc.match(/\/nft_(\d+)\.png/);
+						const _tokenUri = str[1];
+
+						if (listNFTs[i] == _tokenUri) {
+							console.log("remove")
+							image.src = "";
+							break;
+						}
+					}
+				}
+			}
+
+			console.log("start shifting")
+
+			// fill in the gap by shifting
+			for (let i = 0; i < lastEmptyIdx; i++) {
+				const gridItem = document.getElementById(`${grid}-${i}`);
+				const image = gridItem.querySelector("img");
+				const imgSrc =  image.getAttribute("src");
+
+				if (!imgSrc) {
+					for (let j = i + 1; j < lastEmptyIdx; j++) {
+						const nextGridItem = document.getElementById(`${grid}-${j}`);
+						const nextImage = nextGridItem.querySelector("img");
+						const nextImgSrc = nextImage.getAttribute("src");
+
+						if (nextImgSrc) {
+							image.src = nextImage.getAttribute("src");
+							nextImage.src = "";
+							break;
+						}
+					}
+				}
+			}
+
+			for (let i = 0; i < listNFTs.length; i++) {
+				lastEmptyIdx--;
+				const gridItem = document.getElementById(`${grid}-${lastEmptyIdx}`);
+				gridItem.style.display = "none";
+			}
+		}	
+	</script>	
+</body>
+
+</html>

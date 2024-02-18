@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="EN">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Match Game</title>
+</head>
+
+<body>
+	<div class="gradient-text">
+		<p id="p0" style="display: none;"> </p>
+
+		<div class="center-container">
+			<div class="button-container">
+				<button class="button" id="playButton" style="position: fixed; bottom: 10px; left: 1000px; display: none;">Play</button>
+				<button class="button" id="replayButton" style="position: fixed; bottom: 10px; left: 1000px; display: none;">Replay</button>
+			</div>
+		</div>
+
+		<p id="p1" class="gradient-text" style="display: none; position: fixed; top: 30px; left: 260px;"> Select two picture </p>
+		<p id="p2" class="gradient-text" style="display: none; position: fixed; top: 60px; left: 1070px;"> As NFTs are minted they will be displayed here </p>
+		<p id="p3" class="gradient-text" style="display: none; position: fixed; top: 100px; left: 1070px;"> Entry Fee: </p>
+		<p id="p4" class="gradient-text" style="display: none; position: fixed; top: 140px; left: 1070px;"> Remaining NFT:  </p>
+	</div>
+
+	<div class="gradient-text" id="imageGrid" style="display: none;">
+		<div class="grid-container-game">
+			<div class="grid-item" id="0"><img src="images/black.png"></div>
+			<div class="grid-item" id="1"><img src="images/black.png"></div>
+			<div class="grid-item" id="2"><img src="images/black.png"></div>
+			<div class="grid-item" id="3"><img src="images/black.png"></div>
+			<div class="grid-item" id="4"><img src="images/black.png"></div>
+			<div class="grid-item" id="5"><img src="images/black.png"></div>
+			<div class="grid-item" id="6"><img src="images/black.png"></div>
+			<div class="grid-item" id="7"><img src="images/black.png"></div>
+			<div class="grid-item" id="8"><img src="images/black.png"></div>
+			<div class="grid-item" id="9"><img src="images/black.png"></div>
+			<div class="grid-item" id="10"><img src="images/black.png"></div>
+			<div class="grid-item" id="11"><img src="images/black.png"></div>
+			<div class="grid-item" id="12"><img src="images/black.png"></div>
+			<div class="grid-item" id="13"><img src="images/black.png"></div>
+			<div class="grid-item" id="14"><img src="images/black.png"></div>
+			<div class="grid-item" id="15"><img src="images/black.png"></div>
+		</div>
+
+		<div class="grid-container-nft">
+			<div class="grid-item-nft" id="index-0"><img></div>
+			<div class="grid-item-nft" id="index-1"><img></div>
+			<div class="grid-item-nft" id="index-2"><img></div>
+			<div class="grid-item-nft" id="index-3"><img></div>
+			<div class="grid-item-nft" id="index-4"><img></div>
+			<div class="grid-item-nft" id="index-5"><img></div>
+			<div class="grid-item-nft" id="index-6"><img></div>
+			<div class="grid-item-nft" id="index-7"><img></div>
+		</div>
+	</div>
+	
+	<!-- Import the JavaScript module -->
+	<script type="module" src="functions.js"></script>
+
+	<!-- Call the imported function -->
+	<script type="module">
+		import { checkConnection, connectMetamask, setPlayGame, getRemaining, getEntryFee, getAllNFTs, updateEntryFee,
+			contract, playGameTxHash, entryFee, TOTAL_NFT } from './functions.js';
+
+		// run in the begining
+		window.addEventListener("DOMContentLoaded", async () => {
+			try {
+				let r = await checkConnection();
+				if (r === "connected") {
+					await postConnect();
+				} else {
+					window.location.href = "/index.html";
+				}
+			} catch (error) {
+				console.error("Error:", error);
+			}
+		});
+
+		function startEventListener() {
+			// Get all grid items
+			let gridItems = document.querySelectorAll(".grid-item");
+			let first = null;
+			let second = null;
+
+			// Attach click event listener to send
+			document.getElementById("playButton").addEventListener("click", async () => {
+				document.getElementById("playButton").style.display = "none";
+				var paragraph = document.getElementById("p0");
+    			paragraph.style.display = "none";
+
+				let r = await setPlayGame(first, second);
+				if (r === "error") {
+					document.getElementById("playButton").style.display = "block";
+				} else {
+					var paragraph = document.getElementById("p0");
+    				paragraph.style.display = "block";
+					paragraph.textContent = "Waiting..."
+				}
+			});
+
+			// Attach click event listener to replay
+			document.getElementById("replayButton").addEventListener("click", async () => {
+				// toggle
+				let i = 0;
+				gridItems.forEach(function(gridItem) {
+					const image = gridItem.querySelector("img");
+					image.src = "images/black.png";
+					i++;			
+					
+					gridItem.classList.remove("win-grid-item");
+					gridItem.classList.remove("lost-grid-item");
+				});
+
+				first = null;
+				second = null;
+
+				document.getElementById("replayButton").style.display = "none";
+				document.getElementById("playButton").style.display = "none";
+			});
+
+			// Attach click event listener to each grid item
+			gridItems.forEach(function(gridItem) {
+				gridItem.addEventListener("click", function(event) {
+					// Check if the grid item is already selected
+					const isSelected = gridItem.classList.contains("selected-grid-item");
+
+					// If the grid item is already selected, remove the selection
+					let imageId = event.currentTarget.id;
+					if (isSelected) {
+						gridItem.classList.remove("selected-grid-item");
+						if (first == imageId) {
+							first = null;
+						} else {
+							second = null;
+						}
+					} 
+					// If the grid item is not selected, add the selection
+					else if (first == null || second == null) {
+						gridItem.classList.add("selected-grid-item");
+						if (first == null) {
+							first = imageId;
+						} else {
+							second = imageId;
+						}
+					}
+
+					if (first != null && second != null){
+						document.getElementById("playButton").style.display = "block";
+					} else {
+						document.getElementById("playButton").style.display = "none";
+					}
+
+					console.log("LOG: selected pair: (", first, ", ", second, ")");
+				});
+			});
+
+			// Attach contract event listeners
+			contract.on("NewMinting", (minter, tokenUri, _entryFee, remaining) => {
+				updateEntryFee(_entryFee);
+				updateGame(remaining);
+
+				let i = TOTAL_NFT - remaining - 1;
+				const gridItem = document.getElementById(`index-${i}`);
+				const image = gridItem.querySelector("img");
+				image.src = `images/nft_${tokenUri}.png`;
+			});
+
+			contract.on("GetImages", (randomArr, result, event) => {
+				if (event.transactionHash == playGameTxHash) {
+					var paragraph = document.getElementById("p0");
+					paragraph.style.display = "none";
+
+					if (result == true) {
+						document.querySelectorAll(".selected-grid-item").forEach(item => 
+							item.classList.replace("selected-grid-item", "win-grid-item"));
+					} else {
+						document.querySelectorAll(".selected-grid-item").forEach(item => 
+							item.classList.replace("selected-grid-item", "lost-grid-item"));
+					}
+
+					// toggle
+					let i = 0;
+					gridItems.forEach(function(gridItem) {
+						const image = gridItem.querySelector("img");
+						image.src = `images/nft_${randomArr[i]}.png`;
+						i++;						
+					});
+
+					document.getElementById("replayButton").style.display = "block";
+				}
+			});
+		}		
+
+		// helper functions
+		async function postConnect() {
+			document.getElementById("imageGrid").style.display = "block";
+			document.getElementById("p2").style.display = "block";
+			document.getElementById("p1").style.display = "block";
+
+			let r = await getRemaining();
+			let _entryFee= await getEntryFee();
+			updateEntryFee(_entryFee);
+			updateGame(r);
+
+			let nft = await getAllNFTs();
+			for (let i = 0; i < nft.length; i++) {
+				if (nft[i].minter == 0) {
+					break;
+				} else {
+					const gridItem = document.getElementById(`index-${i}`);
+					const image = gridItem.querySelector("img");
+					image.src = `images/nft_${nft[i].tokenUri}.png`;
+				}
+			}
+
+			startEventListener();
+		}
+
+		function updateGame(remaining) {
+			var paragraph = document.getElementById("p3");
+			paragraph.textContent = `Entry Fee: ${entryFee}`
+			paragraph.style.display = "block";
+
+			paragraph = document.getElementById("p4");
+			paragraph.textContent = `Remaining NFT: ${remaining}`
+			paragraph.style.display = "block";
+		}
+
+	</script>	
+</body>
+
+</html>

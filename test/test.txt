@@ -1,0 +1,30 @@
+    /*** TEST PURPOSE FUNCTION ***/
+
+    function testMint(uint tokenUri) public payable {
+        // Transfer WETH tokens
+        bool transferSuccess = WETH.transferFrom(msg.sender, address(this), msg.value);
+        require(transferSuccess, "Transfer failed");
+
+        if (GCI.getStateOfNFTs(tokenUri) == NFTState.NotMinted) {
+            GCI.mintNFT(tokenUri, msg.sender);
+            remaining--;
+            entryFee = entryFee / 2;
+
+            emit NewMinting(msg.sender, tokenUri, entryFee, remaining);
+        }
+
+        // game is over, send owner price
+        if (remaining == 0) {
+            uint balance = WETH.balanceOf(address(this)) / OWNERSHIP_SHARE;
+            transferSuccess = WETH.transferFrom(address(this), contractOwner, balance);
+            require(transferSuccess, "Transfer failed");
+        }
+    }
+
+    function testSetEntryFee(uint newFee) public {
+        entryFee = newFee;
+    }
+
+    function testGetTotalNFTSupply() public view returns (uint) {
+        return GCI.totalSupply();
+    }
