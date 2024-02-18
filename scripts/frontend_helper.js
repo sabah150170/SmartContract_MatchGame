@@ -13,13 +13,13 @@ describe("Frontend Helper", function () {
 
     let users = await ethers.getSigners();
 
-    /*
+    
     await WethDeployed.connect(users[19]).deposit({ value: 1000000000000000000000n }); 
     await WethDeployed.connect(users[19]).approve(GameContractAddress, 50000);
 
     await WethDeployed.connect(users[0]).deposit({ value: 1000000000000000000000n }); 
     await WethDeployed.connect(users[0]).approve(GameContractAddress, 50000);
-    */
+    
 
     ///wait GameDeployed.connect(users[19]).testMint(0, { value: 512 });
     //await GameDeployed.connect(users[19]).testMint(1, { value: 256 }); 
@@ -41,6 +41,7 @@ describe("Frontend Helper", function () {
   })
   
   it("Run", async function() {
+    console.log()
   })
 })
 

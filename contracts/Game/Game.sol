@@ -9,6 +9,7 @@ interface IWETH {
     function transferFrom(address from, address to, uint amount) external returns (bool);
     function balanceOf(address account) external view returns (uint);
     function allowance(address owner, address spender) external view returns (uint);
+    function approve(address spender, uint amount) external returns (uint);
 }
 
 contract Game is Common {
@@ -50,6 +51,12 @@ contract Game is Common {
     modifier IsOwner(uint _id) {
         require(demands[_id].owner == msg.sender, "Only the owner of the NFT can execute.");
         _;
+    }
+
+    modifier addApprove(uint _amount) {
+        uint amount = WETH.allowance(msg.sender, address(this)) + _amount;
+        WETH.approve(address(this), amount);
+        _;        
     }
 
     /*** CONSTANTS  ***/
@@ -101,7 +108,7 @@ contract Game is Common {
 
 
     /*** FUNCTIONS ***/
-    function playGame(uint f_id, uint s_id) public payable checkGame checkFinancial(entryFee) {
+    function playGame(uint f_id, uint s_id) public payable checkGame addApprove(entryFee) checkFinancial(entryFee) {
         require(remaining > 0, "There are no more NFTs to be minted.");
         require(f_id < NUMBER_OF_INDEX && s_id < NUMBER_OF_INDEX, "Out of boundries.");
         require(s_id != f_id, "Indexes should be different.");
@@ -272,6 +279,10 @@ contract Game is Common {
         }
         
         return randomArr;
+    }
+
+    function approveToContract(uint amount) public addApprove(amount) {
+
     }
 
     // get functions
