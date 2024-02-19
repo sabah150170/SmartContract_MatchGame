@@ -35,12 +35,13 @@ contract GameNFT is Common, ERC721, ERC721Enumerable {
 
     /*** FUNCTIONS ***/
     function mintNFT(uint _tokenUri, address _to) external {
-      uint tokenId = _nextTokenId++;
+      uint tokenId;
+      unchecked {tokenId = _nextTokenId++;}
       _safeMint(_to, tokenId);
 
       NFTList[tokenId] = NFT(currentNFTValue, _tokenUri, _to);
 
-      currentNFTValue = currentNFTValue * 2;
+      unchecked {currentNFTValue = 2 * currentNFTValue;}
       stateOfNFTs[_tokenUri] = NFTState.Minted;
 
       //emit NewMinting(_to, NFTUri);
@@ -51,8 +52,9 @@ contract GameNFT is Common, ERC721, ERC721Enumerable {
     }
 
     function burnAllNFTs() external {
-      for (uint tokenId = 0; tokenId < NFTList.length; tokenId++) {
+      for (uint tokenId = 0; tokenId < NFTList.length;) {
         _burn(tokenId);
+        unchecked {++tokenId;}
       }
     }
 
@@ -64,8 +66,9 @@ contract GameNFT is Common, ERC721, ERC721Enumerable {
 
     function getNFTList() external view returns(NFT[] memory) {
       NFT[] memory n = new NFT[](NFTList.length);
-      for (uint i = 0; i < NFTList.length; i++) {
+      for (uint i = 0; i < NFTList.length;) {
         n[i] = NFTList[i];
+        unchecked {++i;}
       }
       
       return n;

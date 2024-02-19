@@ -490,6 +490,36 @@ describe("Test3", function () {
 })
 
 
+describe("Test4", function () {
+  let dummy, user1, user4;
+  
+  before(async function () {
+    await preTest();
+
+    [dummy, user1, user4] = await ethers.getSigners();
+
+    expect(GameContractAddress).to.not.be.undefined;
+
+    await WethDeployed.connect(user1).deposit({ value: 1000000000000000000000n });
+    await WethDeployed.connect(user4).deposit({ value: 1000000000000000000000n });   
+
+    await WethDeployed.connect(user1).approve(GameContractAddress, 50000);
+    await WethDeployed.connect(user4).approve(GameContractAddress, 50000);
+
+  })
+  
+  it("Test 'playGame' cost", async function() {    
+    await GameDeployed.connect(user1).playGame(0, 2, { value: 512 });
+    await GameDeployed.connect(user1).playGame(0, 2, { value: 512 });
+    await GameDeployed.connect(user1).playGame(0, 2, { value: 512 });
+    await GameDeployed.connect(user1).playGame(0, 2, { value: 512 });
+    await GameDeployed.connect(user1).playGame(0, 2, { value: 512 });
+    await GameDeployed.connect(user1).playGame(0, 2, { value: 512 });
+    await GameDeployed.connect(user1).playGame(0, 2, { value: 512 });
+    await GameDeployed.connect(user1).playGame(0, 2, { value: 512 });
+  })
+})
+
 
 async function preTest() {
   const network = process.env.NETWORK;

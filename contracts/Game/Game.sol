@@ -108,10 +108,10 @@ contract Game is Common {
 
 
     /*** FUNCTIONS ***/
-    function playGame(uint f_id, uint s_id) public payable checkGame addApprove(entryFee) checkFinancial(entryFee) {
+    function playGame(uint f_idx, uint s_idx) public payable checkGame addApprove(entryFee) checkFinancial(entryFee) {
         require(remaining > 0, "There are no more NFTs to be minted.");
-        require(f_id < NUMBER_OF_INDEX && s_id < NUMBER_OF_INDEX, "Out of boundries.");
-        require(s_id != f_id, "Indexes should be different.");
+        require(f_idx < NUMBER_OF_INDEX && s_idx < NUMBER_OF_INDEX, "Out of boundries.");
+        require(s_idx != f_idx, "Indexes should be different.");
         require(entryFee == msg.value, "The value must be equal to the entry fee.");
 
         // add WETH tokens to participate
@@ -123,14 +123,15 @@ contract Game is Common {
         uint[] memory randomArr = shuffle();
 
         // check whether hit
-        if (randomArr[f_id] == randomArr[s_id] && GCI.getStateOfNFTs(randomArr[f_id]) == NFTState.NotMinted) {
-            GCI.mintNFT(randomArr[f_id], msg.sender);
+        uint first = randomArr[f_idx];
+        if (first == randomArr[s_idx] && GCI.getStateOfNFTs(first) == NFTState.NotMinted) {
+            GCI.mintNFT(first, msg.sender);
 
-            entryFee = entryFee / 2;
-            remaining--;
+            unchecked {entryFee = entryFee / 2;}
+            unchecked {--remaining;}
             result = true;
 
-            emit NewMinting(msg.sender, randomArr[f_id], entryFee, remaining);
+            emit NewMinting(msg.sender, first, entryFee, remaining);
         }
 
         // game is over, send owner price
@@ -142,7 +143,7 @@ contract Game is Common {
         emit GetImages(randomArr, result);
     }
 
-    function createDemand(uint price, uint[] memory NFTs) public checkGame checkFinancial(price) {
+    function createDemand(uint price, uint[] calldata NFTs) public checkGame checkFinancial(price) {
         require(NFTs.length > 0, "The NFT list cannot be sent empty.");
 
         // demand list holds tokenId not tokenUri
@@ -155,16 +156,18 @@ contract Game is Common {
         NFT[] memory list = GCI.getNFTList();
         uint p = list[NFTs[0]].basePrice;
 
-        for (uint i = 1; i < NFTs.length; i++) {
+        for (uint i = 1; i < NFTs.length;) {
             // check whether all owners are the same and demands exist
             require(NFTs[i] < _nextTokenId, "There is no NFT with this ID.");
             require(owner == GCI.ownerOf(NFTs[i]), "NFTs cannot have different owners.");
 
-            p = p + list[NFTs[i]].basePrice;
+            unchecked {p = p + list[NFTs[i]].basePrice;}
+            unchecked {++i;}
         }
         require(p <= price, "A fee below the base price is not offered.");
 
-        uint currentId = next_demandId++;
+        uint currentId;
+        unchecked {currentId = next_demandId++;}
         demands[currentId] = Demand(DemandState.Valid, msg.sender, price, NFTs, owner);
 
         outboundDemands[msg.sender].push(currentId);
@@ -182,8 +185,9 @@ contract Game is Common {
     function updateDemand(uint demandId, uint price) public checkGame checkDemandId(demandId) IsApplicant(demandId) checkFinancial(price) {
         uint p = 0;
         NFT[] memory list = GCI.getNFTList();
-        for (uint i = 0; i < demands[demandId].NFTs.length; i++) {
-            p = p + list[demands[demandId].NFTs[i]].basePrice;
+        for (uint i = 0; i < demands[demandId].NFTs.length;) {
+            unchecked {p = p + list[demands[demandId].NFTs[i]].basePrice;}
+            unchecked {++i;}
         }
         require(p <= price, "A fee below the base price is not offered.");
 
@@ -199,10 +203,12 @@ contract Game is Common {
 
         // commission for the minters
         NFT[] memory NFTList = GCI.getNFTList();
-        uint m = MINTER_COMMISSION * demand.NFTs.length;
+        uint m;
+        unchecked {m = MINTER_COMMISSION * demand.NFTs.length;}
         
-        for (uint i = 0; i < demand.NFTs.length; i++) {
+        for (uint i = 0; i < demand.NFTs.length;) {
             require(WETH.transferFrom(demand.applicant, NFTList[demand.NFTs[i]].minter, demand.price / m), "Transfer failed");
+            unchecked {++i;}
         }
 
         // commission for the game
@@ -213,8 +219,9 @@ contract Game is Common {
         require(WETH.transferFrom(demand.applicant, msg.sender, p), "Transfer failed");
 
         // send NFTS
-        for (uint i = 0; i < demand.NFTs.length; i++) {
+        for (uint i = 0; i < demand.NFTs.length;) {
             GCI.safeNFTTransfer(msg.sender, demand.applicant, demand.NFTs[i]);
+            unchecked {++i;}
         }
 
         demands[demandId].validity = DemandState.Accepted;
@@ -250,14 +257,16 @@ contract Game is Common {
         
         for (uint i = 0; i < inList.length; i++) {
             if (demands[inList[i]].validity == DemandState.Valid) {
-                for (uint j = 0; j < demand.NFTs.length; j++) {
-                    for (uint k = 0; k < demands[inList[i]].NFTs.length; k++) {
+                for (uint j = 0; j < demand.NFTs.length;) {
+                    for (uint k = 0; k < demands[inList[i]].NFTs.length;) {
                         if(demands[inList[i]].NFTs[k] == demand.NFTs[j]) {
                             demands[inList[i]].validity = DemandState.Invalid;
                             k = _next_demandId;
                             j = _next_demandId;
                         }
+                        unchecked {++k;}
                     }
+                    unchecked {++j;}
                 }
             }
         }
@@ -265,24 +274,22 @@ contract Game is Common {
 
     function shuffle() private view returns (uint[] memory) {
         uint[] memory randomArr = new uint[](NUMBER_OF_INDEX);
-        for (uint i = 0; i < NUMBER_OF_NFTs; i++) {
+        for (uint i = 0; i < NUMBER_OF_NFTs;) {
             randomArr[i] = randomArr[NUMBER_OF_NFTs + i ] = i;
+            unchecked {++i;}
         }
 
         // pseudo random
-        for (uint i = 0; i < randomArr.length; i++) { 
+        for (uint i = 0; i < randomArr.length;) { 
             uint n = uint(keccak256(abi.encodePacked(i + block.timestamp, block.prevrandao))) % randomArr.length;
 
             uint temp = randomArr[n];
             randomArr[n] = randomArr[i];
             randomArr[i] = temp;
+            unchecked {++i;}
         }
         
         return randomArr;
-    }
-
-    function approveToContract(uint amount) public addApprove(amount) {
-
     }
 
     // get functions
@@ -291,8 +298,9 @@ contract Game is Common {
         uint balance = GCI.balanceOf(msg.sender);
 
         NFT[] memory list = new NFT[](balance);        
-        for (uint i = 0; i < balance; i++) {
+        for (uint i = 0; i < balance;) {
             list[i] = NFTList[GCI.tokenOfOwnerByIndex(msg.sender, i)];
+            unchecked {++i;}
         }
 
         return list;

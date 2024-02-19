@@ -28,3 +28,7 @@
     function testGetTotalNFTSupply() public view returns (uint) {
         return GCI.totalSupply();
     }
+
+    function testApproveToContract(uint amount) public addApprove(amount) {
+
+    }
