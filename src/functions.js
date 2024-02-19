@@ -1,11 +1,10 @@
 import { ethers } from "./ethers-5.1.esm.min.js"
+import { abi, contractAddress} from "./constants.js"
 
 
 export const TOTAL_NFT = 8;
 export let contract, playGameTxHash, entryFee, signerAddress;
 
-
-const contractAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 let signer;
 
 
@@ -179,27 +178,13 @@ async function getSmartContract() {
                 console.error("ERROR:", error);
             });
 
-            readTextFile("Game.abi", "text/plain", function(contractABI) {
-                contract = new ethers.Contract(contractAddress, contractABI, signer);
-                resolve("ok");
-            });
+            contract = new ethers.Contract(contractAddress, abi, signer);
+            resolve("ok");
         }
         catch (error) {
             console.error("ERROR:", error);
         }
     });
-}
-
-function readTextFile(file, mime, callback) { //get content of abi 
-    var rawFile = new XMLHttpRequest();
-    rawFile.overrideMimeType(mime);
-    rawFile.open("GET", file, true)
-    rawFile.onreadystatechange = function() {
-      if (rawFile.readyState === 4 && rawFile.status == "200") {
-        callback(rawFile.responseText);
-      }
-    }
-    rawFile.send(null)
 }
 
 function printError(error) {
