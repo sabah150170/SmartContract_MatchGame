@@ -196,8 +196,9 @@ contract Game is Common {
         //emit PriceUpdated(demandId);
     }
 
-    function acceptDemand(uint demandId) public payable checkGame checkDemandId(demandId) IsOwner(demandId) {
+    function acceptDemand(uint demandId, uint price) public payable checkGame checkDemandId(demandId) IsOwner(demandId) {
         Demand memory demand = demands[demandId];
+        require(demand.price == price, "The price has been changed.");
         require(demand.price <= WETH.allowance(demand.applicant, address(this)), "Insufficient allowance of the applicant.");
         require(demand.price <= WETH.balanceOf(demand.applicant), "Insufficient balance of the applicant.");
 
